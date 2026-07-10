@@ -39,7 +39,7 @@ export default async function AdminLayout({
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 p-4 sm:p-6">
+      <div className="mx-auto flex w-full flex-1 gap-6 p-4 sm:p-6">
         <aside className="hidden w-60 shrink-0 md:block">
           <div className="sticky top-20">
             <AdminNav />

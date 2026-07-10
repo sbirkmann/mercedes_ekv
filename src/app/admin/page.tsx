@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Building2, Package, Percent, BadgePercent } from "lucide-react";
+import { Users, Building2, Package, Percent, BadgePercent, ShoppingCart } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const [users, customers, articles, groups, custDiscounts] = await Promise.all([
+  const [orders, users, customers, articles, groups, custDiscounts] = await Promise.all([
+    prisma.order.count(),
     prisma.user.count(),
     prisma.customer.count(),
     prisma.article.count(),
@@ -16,6 +17,7 @@ export default async function AdminDashboard() {
   ]);
 
   const stats = [
+    { label: "Bestellungen", value: orders, href: "/admin/bestellungen", icon: ShoppingCart },
     { label: "Benutzer", value: users, href: "/admin/benutzer", icon: Users },
     { label: "Kunden", value: customers, href: "/admin/kunden", icon: Building2 },
     { label: "Artikel", value: articles, href: "/admin/artikel", icon: Package },

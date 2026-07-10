@@ -9,7 +9,7 @@ import { priceForPartNumber, priceForPartNumbers } from "@/lib/orders";
 import { parsePositionsCsv } from "@/lib/csv";
 import { STATUS_ORDER, type ItemStatus } from "@/lib/pricing";
 
-export type FormState = { error?: string; ok?: boolean } | undefined;
+export type FormState = { error?: string; ok?: boolean; info?: string } | undefined;
 
 const VALID_STATUS = new Set<string>(STATUS_ORDER);
 
@@ -85,13 +85,18 @@ export async function addPositionManual(orderId: string, _prev: FormState, formD
   const customerId = await customerIdOf(orderId);
   const { article, result } = await priceForPartNumber(customerId, partNumber);
 
+  // Nur einfügen, wenn die Teilenummer (oder formatierte Nr.) im Katalog existiert
+  if (!article) {
+    return { error: `Teilenummer „${partNumber}" nicht im Katalog gefunden.` };
+  }
+
   await prisma.orderItem.create({
     data: {
       orderId,
       position: await nextPosition(orderId),
       quantity,
-      partNumber,
-      articleId: article?.id ?? null,
+      partNumber: article.partNumber,
+      articleId: article.id,
       priceCustomerStandard: result.priceCustomerStandard,
       status: result.status,
     },
@@ -114,22 +119,33 @@ export async function importPositionsCsv(orderId: string, _prev: FormState, form
   const priceOf = await priceForPartNumbers(customerId, rows.map((r) => r.partNumber));
   let pos = await nextPosition(orderId);
 
-  const data = rows.map((r) => {
-    const { article, result } = priceOf(r.partNumber);
-    return {
+  // Nur Zeilen mit existierender Teilenummer (oder formatierter Nr.) übernehmen
+  const data = rows
+    .map((r) => ({ r, ...priceOf(r.partNumber) }))
+    .filter((x) => x.article !== null)
+    .map((x) => ({
       orderId,
       position: pos++,
-      quantity: r.quantity,
-      partNumber: r.partNumber,
-      articleId: article?.id ?? null,
-      priceCustomerStandard: result.priceCustomerStandard,
-      status: result.status,
-    };
-  });
+      quantity: x.r.quantity,
+      partNumber: x.article!.partNumber,
+      articleId: x.article!.id,
+      priceCustomerStandard: x.result.priceCustomerStandard,
+      status: x.result.status,
+    }));
+
+  const notFound = rows.length - data.length;
+  if (data.length === 0) {
+    return { error: `Keine der ${rows.length} Teilenummern wurde im Katalog gefunden.` };
+  }
 
   await prisma.orderItem.createMany({ data });
   revalidatePath(`/admin/bestellungen/${orderId}`);
-  return { ok: true };
+  return {
+    ok: true,
+    info:
+      `${data.length} Position${data.length === 1 ? "" : "en"} hinzugefügt` +
+      (notFound > 0 ? `, ${notFound} nicht im Katalog gefunden (übersprungen).` : "."),
+  };
 }
 
 const priceOrNull = (v: FormDataEntryValue | null): number | null => {

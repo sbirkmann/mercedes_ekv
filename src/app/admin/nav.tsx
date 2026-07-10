@@ -9,11 +9,13 @@ import {
   Percent,
   BadgePercent,
   LayoutDashboard,
+  ShoppingCart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/admin", label: "Übersicht", icon: LayoutDashboard, exact: true },
+  { href: "/admin/bestellungen", label: "Bestellungen", icon: ShoppingCart },
   { href: "/admin/benutzer", label: "Benutzerverwaltung", icon: Users },
   { href: "/admin/kunden", label: "Kundenverwaltung", icon: Building2 },
   { href: "/admin/artikel", label: "Artikelverwaltung", icon: Package },

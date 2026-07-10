@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { formatEUR } from "@/lib/utils";
 import { STATUS_LABEL, STATUS_ORDER, type ItemStatus } from "@/lib/pricing";
 import {
@@ -29,7 +30,9 @@ export type PositionRow = {
   partNumberFmt: string | null;
   partNumberReplacement: string | null;
   titleDe: string | null;
+  discountGroupCode: string | null;
   listPrice: string | null;
+  ekPrice: string | null;
   priceCustomerStandard: string | null;
   priceRequested: string | null;
   priceBilling: string | null;
@@ -70,7 +73,8 @@ export function PositionsManager({ rows }: { rows: PositionRow[] }) {
             <TableHead>Teilenummer</TableHead>
             <TableHead className="w-36">Ersatz-Teilenr.</TableHead>
             <TableHead>Titel</TableHead>
-            <TableHead className="text-right">Preis Liste</TableHead>
+            <TableHead>Rabattgr.</TableHead>
+            <TableHead className="text-right">Preis Liste / EK</TableHead>
             <TableHead className="text-right">Kundenpreis Std.</TableHead>
             <TableHead className="w-28 text-right">Angefragt</TableHead>
             <TableHead className="w-28 text-right">Abrechnung</TableHead>
@@ -107,8 +111,24 @@ export function PositionsManager({ rows }: { rows: PositionRow[] }) {
               <TableCell className="max-w-48 truncate" title={r.titleDe ?? ""}>
                 {r.titleDe ?? <span className="text-muted-foreground">nicht im Katalog</span>}
               </TableCell>
-              <TableCell className="text-right tabular-nums text-muted-foreground">
-                {r.listPrice !== null ? formatEUR(r.listPrice) : "–"}
+              <TableCell>
+                {r.discountGroupCode ? (
+                  <Badge variant="secondary" className="font-mono">{r.discountGroupCode}</Badge>
+                ) : (
+                  <span className="text-muted-foreground">–</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {r.listPrice !== null ? (
+                  <div>
+                    <div className="text-muted-foreground">{formatEUR(r.listPrice)}</div>
+                    <div className="text-xs text-muted-foreground/80">
+                      EK {r.ekPrice !== null ? formatEUR(r.ekPrice) : "–"}
+                    </div>
+                  </div>
+                ) : (
+                  "–"
+                )}
               </TableCell>
               <TableCell className="text-right tabular-nums font-medium">
                 {r.priceCustomerStandard !== null ? (

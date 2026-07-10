@@ -5,8 +5,14 @@ import { computePrice, type PriceResult } from "@/lib/pricing";
 const num = (v: unknown): number | null =>
   v === null || v === undefined ? null : Number(v);
 
+/** Teilenummer normalisieren: Großschreibung, ohne Whitespace. */
+export function normalizePn(s: string): string {
+  return s.toUpperCase().replace(/\s+/g, "").trim();
+}
+
 type ArticleForPricing = {
   id: string;
+  partNumber: string;
   listPrice: unknown;
   discountGroup: {
     code: string;
@@ -35,12 +41,40 @@ export function priceWith(
   });
 }
 
+/**
+ * Artikel per (normalisierter) Teilenummer laden – trifft sowohl rohe als auch
+ * formatierte Nummern in beliebiger Schreibweise/Leerzeichen. Nutzt die
+ * normalisierten Ausdrucks-Indizes.
+ */
+async function findArticleIdsByNorm(norms: string[]): Promise<Map<string, string>> {
+  const uniq = Array.from(new Set(norms.filter((n) => n.length > 0)));
+  if (uniq.length === 0) return new Map();
+
+  const rows = await prisma.$queryRaw<{ id: string; pnn: string; pfn: string }[]>`
+    SELECT id,
+      upper(regexp_replace("partNumber", '\s', '', 'g'))    AS pnn,
+      upper(regexp_replace("partNumberFmt", '\s', '', 'g')) AS pfn
+    FROM "Article"
+    WHERE upper(regexp_replace("partNumber", '\s', '', 'g'))    = ANY(${uniq})
+       OR upper(regexp_replace("partNumberFmt", '\s', '', 'g')) = ANY(${uniq})
+  `;
+
+  // norm -> articleId (partNumber-Treffer haben Vorrang vor Fmt)
+  const map = new Map<string, string>();
+  for (const r of rows) if (!map.has(r.pnn)) map.set(r.pnn, r.id);
+  for (const r of rows) if (!map.has(r.pfn)) map.set(r.pfn, r.id);
+  return map;
+}
+
 /** Einzelne Position: Artikel per Teilenummer suchen und bepreisen. */
 export async function priceForPartNumber(customerId: string, partNumber: string) {
-  const article = await prisma.article.findFirst({
-    where: { OR: [{ partNumber }, { partNumberFmt: partNumber }] },
-    include: { discountGroup: true },
-  });
+  const idMap = await findArticleIdsByNorm([normalizePn(partNumber)]);
+  const articleId = idMap.get(normalizePn(partNumber)) ?? null;
+
+  const article = articleId
+    ? await prisma.article.findUnique({ where: { id: articleId }, include: { discountGroup: true } })
+    : null;
+
   const cd = article?.discountGroup
     ? await prisma.customerDiscount.findUnique({
         where: {
@@ -56,27 +90,24 @@ export async function priceForPartNumber(customerId: string, partNumber: string)
 
 /**
  * Mehrere Teilenummern (CSV) effizient bepreisen: Artikel & Kundenrabatte
- * werden gebündelt geladen.
+ * werden gebündelt geladen. Matching ist normalisiert (leerzeichen-/formatunabhängig).
  */
 export async function priceForPartNumbers(customerId: string, partNumbers: string[]) {
-  const uniq = Array.from(new Set(partNumbers));
-  const articles = await prisma.article.findMany({
-    where: { OR: [{ partNumber: { in: uniq } }, { partNumberFmt: { in: uniq } }] },
-    include: { discountGroup: true },
-  });
+  const norms = partNumbers.map(normalizePn);
+  const idMap = await findArticleIdsByNorm(norms);
 
-  // Lookup per Teilenummer (partNumber und partNumberFmt)
-  const byKey = new Map<string, (typeof articles)[number]>();
-  for (const a of articles) {
-    byKey.set(a.partNumber, a);
-    if (a.partNumberFmt) byKey.set(a.partNumberFmt, a);
-  }
+  const ids = Array.from(new Set(Array.from(idMap.values())));
+  const articles = ids.length
+    ? await prisma.article.findMany({ where: { id: { in: ids } }, include: { discountGroup: true } })
+    : [];
+  const byId = new Map(articles.map((a) => [a.id, a]));
 
   const discounts = await prisma.customerDiscount.findMany({ where: { customerId } });
   const cdByGroup = new Map(discounts.map((d) => [d.discountGroupCode, d]));
 
   return (pn: string) => {
-    const article = byKey.get(pn) ?? null;
+    const id = idMap.get(normalizePn(pn));
+    const article = id ? byId.get(id) ?? null : null;
     const cd = article?.discountGroup ? cdByGroup.get(article.discountGroup.code) ?? null : null;
     return { article, result: priceWith(article, cd) };
   };

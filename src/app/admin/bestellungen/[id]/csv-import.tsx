@@ -29,7 +29,11 @@ export function CsvImport({ orderId }: { orderId: string }) {
         <SubmitButton variant="secondary">
           <Upload /> CSV importieren
         </SubmitButton>
-        {state?.ok && <span className="text-sm text-emerald-600 dark:text-emerald-400">Importiert ✓</span>}
+        {state?.ok && (
+          <span className="text-sm text-emerald-600 dark:text-emerald-400">
+            {state.info ?? "Importiert ✓"}
+          </span>
+        )}
       </div>
       <FormError message={state?.error} />
       <p className="text-xs text-muted-foreground">

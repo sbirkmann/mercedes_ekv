@@ -9,7 +9,7 @@ export type FormState = { error?: string; ok?: boolean } | undefined;
 
 const schema = z.object({
   customerId: z.string().min(1),
-  discountGroupCode: z.string().trim().toUpperCase().length(3, "Rabattgruppe wählen"),
+  discountGroupCode: z.string().trim().toUpperCase().min(1, "Rabattgruppe wählen").max(10),
   discount: z
     .string()
     .trim()

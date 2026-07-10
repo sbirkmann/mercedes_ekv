@@ -113,7 +113,7 @@ export function AddPosition({ orderId }: { orderId: string }) {
       </div>
       <FormError message={state?.error} />
       <p className="text-xs text-muted-foreground">
-        Nicht im Katalog gefundene Teilenummern werden trotzdem übernommen (Status „muss angefragt werden").
+        Nur vorhandene Teilenummern (roh oder formatiert, Schreibweise/Leerzeichen egal). Unbekannte werden abgelehnt.
       </p>
     </form>
   );

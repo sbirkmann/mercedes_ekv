@@ -29,13 +29,27 @@ export default async function OrderDetailPage({
       customer: true,
       items: {
         orderBy: { position: "asc" },
-        include: { article: { select: { titleDe: true, listPrice: true, partNumberFmt: true } } },
+        include: {
+          article: {
+            select: {
+              titleDe: true,
+              listPrice: true,
+              partNumberFmt: true,
+              discountGroupCode: true,
+              discountGroup: { select: { percent: true } },
+            },
+          },
+        },
       },
     },
   });
   if (!order) notFound();
 
-  const rows: PositionRow[] = order.items.map((it) => ({
+  const rows: PositionRow[] = order.items.map((it) => {
+    const list = it.article ? Number(it.article.listPrice) : null;
+    const pct = it.article?.discountGroup?.percent != null ? Number(it.article.discountGroup.percent) : 0;
+    const ek = list !== null ? Math.round(list * (1 - pct / 100) * 100) / 100 : null;
+    return {
     id: it.id,
     position: it.position,
     quantity: it.quantity,
@@ -43,12 +57,15 @@ export default async function OrderDetailPage({
     partNumberFmt: it.article?.partNumberFmt ?? null,
     partNumberReplacement: it.partNumberReplacement,
     titleDe: it.article?.titleDe ?? null,
-    listPrice: it.article ? String(it.article.listPrice) : null,
+    discountGroupCode: it.article?.discountGroupCode ?? null,
+    listPrice: list !== null ? String(list) : null,
+    ekPrice: ek !== null ? String(ek) : null,
     priceCustomerStandard: it.priceCustomerStandard !== null ? String(it.priceCustomerStandard) : null,
     priceRequested: it.priceRequested !== null ? String(it.priceRequested) : null,
     priceBilling: it.priceBilling !== null ? String(it.priceBilling) : null,
     status: it.status,
-  }));
+    };
+  });
 
   const c = order.customer;
 

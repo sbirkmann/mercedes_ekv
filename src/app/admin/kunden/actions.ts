@@ -92,7 +92,11 @@ export async function updateCustomer(id: string, _prev: FormState, formData: For
 
 export async function deleteCustomer(formData: FormData) {
   await requireUser();
-  await prisma.customer.delete({ where: { id: String(formData.get("id")) } });
+  try {
+    await prisma.customer.delete({ where: { id: String(formData.get("id")) } });
+  } catch {
+    // Kunde hat noch Bestellungen (onDelete: Restrict) o.ä. – nicht löschbar
+  }
   revalidatePath("/admin/kunden");
 }
 

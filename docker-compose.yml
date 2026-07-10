@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ekv_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ekv
+      POSTGRES_PASSWORD: ekv
+      POSTGRES_DB: ekv
+    ports:
+      - "55432:5432"
+    volumes:
+      - ekv_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ekv -d ekv"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ekv_pgdata:

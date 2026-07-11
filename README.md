@@ -80,6 +80,28 @@ DATABASE_URL="postgresql://ekv:ekv@localhost:55432/ekv?schema=public"
 AUTH_SECRET="<mind. 16 Zeichen, für Produktion ändern>"
 ```
 
+## Deployment (Coolify / Docker)
+
+Beim **Start** (`npm start`) laufen automatisch:
+1. `prisma migrate deploy` – alle ausstehenden Migrationen,
+2. `node prisma/ensure-admin.mjs` – legt einen Admin-Benutzer an, falls noch keiner
+   mit der konfigurierten E-Mail existiert (idempotent),
+3. `next start`.
+
+**Benötigte Env-Variablen** (in Coolify setzen):
+
+| Variable | Zweck |
+| --- | --- |
+| `DATABASE_URL` | Postgres-Verbindung |
+| `AUTH_SECRET` | Session-Signatur (≥ 32 Zeichen) |
+| `ADMIN_EMAIL` | Initial-Admin (Default `admin@ekv.local`) |
+| `ADMIN_PASSWORD` | Initial-Admin-Passwort (Default `admin123` – **ändern!**) |
+| `ADMIN_NAME` | Anzeigename (Default `Administrator`) |
+
+**Coolify:** entweder das mitgelieferte `Dockerfile` verwenden, oder Nixpacks mit
+Build-Command `npm run build` und Start-Command `npm start`. Der Admin-Seed und die
+Migrationen laufen dann bei jedem Deploy/Start.
+
 ## Datenmodell (Kurz)
 
 - **User** – interne Benutzer (`ADMIN` | `USER`)

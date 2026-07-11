@@ -72,15 +72,14 @@ export function PositionsManager({ rows }: { rows: PositionRow[] }) {
           // Nach "bestellt"/"geliefert": Menge gesperrt und Löschen ausgeblendet
           const locked = r.status === "ordered" || r.status === "delivered";
           return (
-          <div
-            // Key enthält die gespeicherten Werte: ändert sich ein Serverwert
-            // (z. B. nach Batch-Status, Speichern, Neuberechnung), mountet die
-            // Zeile neu und zeigt den aktuellen Wert an.
-            key={`${r.id}:${r.status}:${r.quantity}:${r.priceRequested ?? ""}:${r.priceBilling ?? ""}:${r.partNumberReplacement ?? ""}`}
-            className={`grid ${COLS} items-center gap-x-2 border-b px-3 py-2 text-sm last:border-0 hover:bg-muted/40`}
-          >
-            {/* Update-Formular – alle Eingaben liegen INNERHALB des Formulars (display:contents) */}
-            <form action={updatePosition.bind(null, r.id)} className="contents">
+            // Eine echte <form> IST die Grid-Zeile → alle Zellen sind direkte
+            // Grid-Items (keine display:contents-Tricks → saubere Spalten).
+            // Neu-Berechnen/Löschen laufen über formAction-Buttons.
+            <form
+              key={`${r.id}:${r.status}:${r.quantity}:${r.priceRequested ?? ""}:${r.priceBilling ?? ""}:${r.partNumberReplacement ?? ""}`}
+              action={updatePosition.bind(null, r.id)}
+              className={`grid ${COLS} items-center gap-x-2 border-b px-3 py-2 text-sm last:border-0 hover:bg-muted/40`}
+            >
               <div className="text-muted-foreground">{r.position}</div>
               <Input
                 name="quantity"
@@ -143,15 +142,9 @@ export function PositionsManager({ rows }: { rows: PositionRow[] }) {
                 placeholder="—"
                 className="h-8 w-full text-right"
               />
-              <div className="text-right tabular-nums text-muted-foreground">
-                {r.qtyReceived ?? "–"}
-              </div>
-              <div className="text-right tabular-nums text-muted-foreground">
-                {r.qtyDelivered ?? "–"}
-              </div>
-              <div className="text-right tabular-nums text-muted-foreground">
-                {r.qtyBilled ?? "–"}
-              </div>
+              <div className="text-right tabular-nums text-muted-foreground">{r.qtyReceived ?? "–"}</div>
+              <div className="text-right tabular-nums text-muted-foreground">{r.qtyDelivered ?? "–"}</div>
+              <div className="text-right tabular-nums text-muted-foreground">{r.qtyBilled ?? "–"}</div>
               <Select name="status" defaultValue={r.status} className="h-8">
                 {STATUS_ORDER.map((s) => (
                   <option key={s} value={s}>{STATUS_LABEL[s]}</option>
@@ -160,13 +153,9 @@ export function PositionsManager({ rows }: { rows: PositionRow[] }) {
               <Button type="submit" size="sm" variant="outline" className="justify-self-end">
                 Speichern
               </Button>
-            </form>
-
-            {/* Neu berechnen (eigenes Formular) */}
-            <form action={recalcPosition} className="contents">
-              <input type="hidden" name="id" value={r.id} />
               <Button
                 type="submit"
+                formAction={recalcPosition.bind(null, r.id)}
                 size="icon"
                 variant="ghost"
                 className="size-8 justify-self-center"
@@ -174,16 +163,12 @@ export function PositionsManager({ rows }: { rows: PositionRow[] }) {
               >
                 <RefreshCw className="size-4" />
               </Button>
-            </form>
-
-            {/* Löschen (eigenes Formular) – bei bestellt/geliefert ausgeblendet */}
-            {locked ? (
-              <div />
-            ) : (
-              <form action={deletePosition} className="contents">
-                <input type="hidden" name="id" value={r.id} />
+              {locked ? (
+                <div />
+              ) : (
                 <Button
                   type="submit"
+                  formAction={deletePosition.bind(null, r.id)}
                   size="icon"
                   variant="ghost"
                   className="size-8 justify-self-center text-destructive hover:bg-destructive/10"
@@ -194,9 +179,8 @@ export function PositionsManager({ rows }: { rows: PositionRow[] }) {
                 >
                   <Trash2 className="size-4" />
                 </Button>
-              </form>
-            )}
-          </div>
+              )}
+            </form>
           );
         })}
       </div>

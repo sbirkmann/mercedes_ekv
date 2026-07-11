@@ -296,9 +296,8 @@ export async function updatePosition(itemId: string, formData: FormData): Promis
 }
 
 /** Kundenpreis-Standard & Status aus aktuellem Artikel/Kundenrabatt neu berechnen. */
-export async function recalcPosition(formData: FormData): Promise<void> {
+export async function recalcPosition(itemId: string, _formData?: FormData): Promise<void> {
   await requireUser();
-  const itemId = String(formData.get("id"));
   const item = await prisma.orderItem.findUnique({ where: { id: itemId } });
   if (!item) return;
   const customerId = await customerIdOf(item.orderId);
@@ -519,10 +518,10 @@ export async function setAllStatus(orderId: string, formData: FormData): Promise
   revalidatePath(`/admin/bestellungen/${orderId}`);
 }
 
-export async function deletePosition(formData: FormData): Promise<void> {
+export async function deletePosition(itemId: string, _formData?: FormData): Promise<void> {
   await requireUser();
   const item = await prisma.orderItem.delete({
-    where: { id: String(formData.get("id")) },
+    where: { id: itemId },
     select: { orderId: true },
   });
   revalidatePath(`/admin/bestellungen/${item.orderId}`);

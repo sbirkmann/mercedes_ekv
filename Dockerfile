@@ -11,12 +11,12 @@ RUN npm ci
 
 # Quellcode + Build
 COPY . .
-RUN npm run build
+RUN npm run build && chmod +x docker-entrypoint.sh
 
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 EXPOSE 3000
 
-# Startet: prisma migrate deploy + Admin-Seed + next start
-CMD ["npm", "run", "start"]
+# Startet: DATABASE_URL/AUTH_SECRET-Check + migrate deploy + Admin-Seed + next start
+CMD ["./docker-entrypoint.sh"]

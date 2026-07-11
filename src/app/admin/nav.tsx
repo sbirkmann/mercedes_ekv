@@ -10,17 +10,23 @@ import {
   BadgePercent,
   LayoutDashboard,
   ShoppingCart,
+  Truck,
+  FileText,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/admin", label: "Übersicht", icon: LayoutDashboard, exact: true },
   { href: "/admin/bestellungen", label: "Bestellungen", icon: ShoppingCart },
+  { href: "/admin/lieferscheine", label: "Lieferscheine", icon: Truck },
+  { href: "/admin/rechnungen", label: "Rechnungen", icon: FileText },
   { href: "/admin/benutzer", label: "Benutzerverwaltung", icon: Users },
   { href: "/admin/kunden", label: "Kundenverwaltung", icon: Building2 },
   { href: "/admin/artikel", label: "Artikelverwaltung", icon: Package },
   { href: "/admin/rabattgruppen", label: "Rabattgruppen", icon: Percent },
   { href: "/admin/kundenrabatte", label: "Kundenrabatte", icon: BadgePercent },
+  { href: "/admin/einstellungen", label: "Einstellungen", icon: Settings },
 ];
 
 export function AdminNav() {

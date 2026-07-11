@@ -6,9 +6,15 @@ import { PageHeader } from "@/components/page-header";
 import { buttonVariants, Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { deleteOrder } from "../actions";
+import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { deleteOrder, setAllStatus, setMercedesNumber } from "../actions";
+import { STATUS_LABEL, STATUS_ORDER, deliverableLabel } from "@/lib/pricing";
+import { availableToDeliver, openReceipt } from "@/lib/delivery";
 import { AddPosition } from "./add-position";
-import { CsvImport } from "./csv-import";
+import { OrderActionsBar } from "./order-actions-bar";
+import { OrderStatusControls } from "./order-status-controls";
+import { CreateDeliveryNote } from "./create-delivery-note";
 import { PositionsManager, type PositionRow } from "./positions-manager";
 
 export const dynamic = "force-dynamic";
@@ -41,9 +47,29 @@ export default async function OrderDetailPage({
           },
         },
       },
+      deliveryNotes: {
+        orderBy: { number: "desc" },
+        include: { _count: { select: { items: true } } },
+      },
     },
   });
   if (!order) notFound();
+
+  const deliverableItems = order.items
+    .map((it) => ({
+      id: it.id,
+      partNumber: it.article?.partNumberFmt || it.partNumber,
+      title: it.article?.titleDe ?? it.partNumber,
+      available: availableToDeliver(it),
+    }))
+    .filter((d) => d.available > 0);
+
+  const receiptItems = order.items.map((it) => ({
+    id: it.id,
+    partNumber: it.article?.partNumberFmt || it.partNumber,
+    title: it.article?.titleDe ?? it.partNumber,
+    open: openReceipt(it),
+  }));
 
   const rows: PositionRow[] = order.items.map((it) => {
     const list = it.article ? Number(it.article.listPrice) : null;
@@ -63,11 +89,21 @@ export default async function OrderDetailPage({
     priceCustomerStandard: it.priceCustomerStandard !== null ? String(it.priceCustomerStandard) : null,
     priceRequested: it.priceRequested !== null ? String(it.priceRequested) : null,
     priceBilling: it.priceBilling !== null ? String(it.priceBilling) : null,
+    qtyReceived: it.qtyReceived,
+    qtyDelivered: it.qtyDelivered,
+    qtyBilled: it.qtyBilled,
     status: it.status,
     };
   });
 
   const c = order.customer;
+  const deliverable = deliverableLabel(
+    order.items.map((it) => ({
+      quantity: it.quantity,
+      qtyReceived: it.qtyReceived,
+      qtyDelivered: it.qtyDelivered,
+    })),
+  );
 
   return (
     <div>
@@ -93,7 +129,26 @@ export default async function OrderDetailPage({
         }
       />
 
-      <div className="mb-4 grid gap-4 lg:grid-cols-2">
+      <div className="mb-4 grid gap-4 lg:grid-cols-[auto_1fr]">
+        <Card>
+          <CardContent className="grid gap-3 py-4">
+            <OrderStatusControls
+              orderId={order.id}
+              status={order.status}
+              deliveryStatus={order.deliveryStatus}
+            />
+            <form action={setMercedesNumber.bind(null, order.id)} className="flex items-center gap-2">
+              <span className="whitespace-nowrap text-sm text-muted-foreground">Mercedes Bestellnr.:</span>
+              <Input
+                name="mercedesOrderNumber"
+                defaultValue={order.mercedesOrderNumber ?? ""}
+                placeholder="—"
+                className="h-9 w-48"
+              />
+              <Button type="submit" variant="secondary" size="sm">Speichern</Button>
+            </form>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Position suchen & hinzufügen</CardTitle>
@@ -102,19 +157,56 @@ export default async function OrderDetailPage({
             <AddPosition orderId={order.id} />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">CSV-Import (Teilenummer, Anzahl)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CsvImport orderId={order.id} />
-          </CardContent>
-        </Card>
       </div>
 
-      <div className="mb-2 flex items-center gap-2">
-        <h2 className="text-lg font-semibold">Positionen</h2>
-        <Badge variant="secondary">{rows.length}</Badge>
+      {order.deliveryNotes.length > 0 && (
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Lieferscheine ({order.deliveryNotes.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2 pt-0">
+            {order.deliveryNotes.map((n) => (
+              <Link
+                key={n.id}
+                href={`/admin/lieferscheine/${n.id}`}
+                className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+              >
+                <span className="font-mono text-xs">LS-{String(n.number).padStart(5, "0")}</span>
+                <Badge variant="secondary">{n.type === "pickup" ? "Abholung" : "Versand"}</Badge>
+                <span className="text-muted-foreground">{n._count.items} Pos.</span>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">Positionen</h2>
+          <Badge variant="secondary">{rows.length}</Badge>
+          {deliverable && (
+            <Badge variant={deliverable.startsWith("Vollständig") ? "success" : "warning"}>
+              {deliverable}
+            </Badge>
+          )}
+        </div>
+        {rows.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Batch: Status aller Positionen setzen */}
+            <form action={setAllStatus.bind(null, order.id)} className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Alle auf:</span>
+              <Select name="status" defaultValue="" required className="h-9 w-48">
+                <option value="" disabled>– Status wählen –</option>
+                {STATUS_ORDER.map((s) => (
+                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                ))}
+              </Select>
+              <Button type="submit" variant="secondary" size="sm">Anwenden</Button>
+            </form>
+            <CreateDeliveryNote orderId={order.id} items={deliverableItems} />
+            <OrderActionsBar orderId={order.id} receiptItems={receiptItems} />
+          </div>
+        )}
       </div>
       <PositionsManager rows={rows} />
     </div>

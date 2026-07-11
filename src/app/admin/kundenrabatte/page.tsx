@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Check, Settings2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/page-header";
+import { NewCustomerDiscount } from "./new-customer-discount";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -18,22 +19,35 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function KundenrabattePage() {
-  const customers = await prisma.customer.findMany({
-    orderBy: { customerNumber: "asc" },
-    include: {
-      discounts: {
-        orderBy: { discountGroupCode: "asc" },
-        include: { discountGroup: true },
+  const [customers, allCustomers] = await Promise.all([
+    prisma.customer.findMany({
+      where: { discounts: { some: {} } },
+      orderBy: { customerNumber: "asc" },
+      include: {
+        discounts: {
+          orderBy: { discountGroupCode: "asc" },
+          include: { discountGroup: true },
+        },
       },
-    },
-  });
+    }),
+    prisma.customer.findMany({
+      orderBy: { customerNumber: "asc" },
+      select: { id: true, companyName: true, customerNumber: true },
+    }),
+  ]);
 
   return (
     <div>
       <PageHeader
         title="Kundenrabatte"
-        description="Rabatte je Kunde – gruppiert nach Kunde"
+        description="Rabatte je Kunde – nur Kunden mit hinterlegten Rabatten"
+        action={<NewCustomerDiscount customers={allCustomers} />}
       />
+      {customers.length === 0 && (
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          Keine Kunden mit Rabatten. Oben „Rabatt für neuen Kunden" wählen.
+        </Card>
+      )}
       <div className="grid gap-4">
         {customers.map((c) => (
           <Card key={c.id}>

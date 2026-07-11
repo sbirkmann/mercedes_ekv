@@ -32,8 +32,8 @@ export async function GET(req: Request) {
   const rows = await prisma.$queryRaw<Row[]>`
     SELECT "partNumber", "partNumberFmt", "titleDe", "listPrice", "discountGroupCode"
     FROM "Article"
-    WHERE upper(regexp_replace("partNumber", '\s', '', 'g'))    LIKE ${likeNorm}
-       OR upper(regexp_replace("partNumberFmt", '\s', '', 'g')) LIKE ${likeNorm}
+    WHERE upper(regexp_replace("partNumber", '\\s', '', 'g'))    LIKE ${likeNorm}
+       OR upper(regexp_replace("partNumberFmt", '\\s', '', 'g')) LIKE ${likeNorm}
        OR "titleDe" ILIKE ${likeText}
        OR "titleEn" ILIKE ${likeText}
     ORDER BY "partNumber" ASC

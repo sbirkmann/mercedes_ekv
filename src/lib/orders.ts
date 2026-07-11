@@ -52,11 +52,11 @@ async function findArticleIdsByNorm(norms: string[]): Promise<Map<string, string
 
   const rows = await prisma.$queryRaw<{ id: string; pnn: string; pfn: string }[]>`
     SELECT id,
-      upper(regexp_replace("partNumber", '\s', '', 'g'))    AS pnn,
-      upper(regexp_replace("partNumberFmt", '\s', '', 'g')) AS pfn
+      upper(regexp_replace("partNumber", '\\s', '', 'g'))    AS pnn,
+      upper(regexp_replace("partNumberFmt", '\\s', '', 'g')) AS pfn
     FROM "Article"
-    WHERE upper(regexp_replace("partNumber", '\s', '', 'g'))    = ANY(${uniq})
-       OR upper(regexp_replace("partNumberFmt", '\s', '', 'g')) = ANY(${uniq})
+    WHERE upper(regexp_replace("partNumber", '\\s', '', 'g'))    = ANY(${uniq})
+       OR upper(regexp_replace("partNumberFmt", '\\s', '', 'g')) = ANY(${uniq})
   `;
 
   // norm -> articleId (partNumber-Treffer haben Vorrang vor Fmt)

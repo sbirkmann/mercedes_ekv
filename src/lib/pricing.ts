@@ -86,3 +86,40 @@ export const STATUS_ORDER: ItemStatus[] = [
   "ordered",
   "delivered",
 ];
+
+export type OrderStatus = "open" | "ordered";
+export type DeliveryStatus = "open" | "partially_delivered" | "fully_delivered";
+
+export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  open: "Offen",
+  ordered: "Bestellt",
+};
+export const ORDER_STATUS_ORDER: OrderStatus[] = ["open", "ordered"];
+
+export const DELIVERY_STATUS_LABEL: Record<DeliveryStatus, string> = {
+  open: "Offen",
+  partially_delivered: "Teilweise geliefert",
+  fully_delivered: "Vollständig geliefert",
+};
+export const DELIVERY_STATUS_ORDER: DeliveryStatus[] = [
+  "open",
+  "partially_delivered",
+  "fully_delivered",
+];
+
+/**
+ * Virtueller Auslieferbar-Status einer Bestellung aus Wareneingang (WE) und
+ * Lieferung (Lief.) je Position:
+ *  - alle Positionen komplett deckbar (WE ≥ Menge) → "Vollständig auslieferbar"
+ *  - mindestens eine Position mit lieferbarem Bestand (WE > Lief.) → "Teilweise auslieferbar"
+ *  - sonst null (nichts auslieferbar)
+ */
+export function deliverableLabel(
+  items: { quantity: number; qtyReceived: number | null; qtyDelivered: number | null }[],
+): "Vollständig auslieferbar" | "Teilweise auslieferbar" | null {
+  if (items.length === 0) return null;
+  const allFull = items.every((i) => (i.qtyReceived ?? 0) >= i.quantity);
+  if (allFull) return "Vollständig auslieferbar";
+  const somePartial = items.some((i) => (i.qtyReceived ?? 0) > (i.qtyDelivered ?? 0));
+  return somePartial ? "Teilweise auslieferbar" : null;
+}

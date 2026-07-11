@@ -1,4 +1,5 @@
 export type CsvPosition = { partNumber: string; quantity: number };
+export type CsvResult = { partNumber: string; quantity: number; price: number };
 
 function splitLine(line: string, delim: string): string[] {
   // einfache Quote-Behandlung
@@ -65,6 +66,39 @@ export function parsePositionsCsv(text: string): { rows: CsvPosition[]; skipped:
       continue;
     }
     rows.push({ partNumber, quantity });
+  }
+
+  return { rows, skipped };
+}
+
+/**
+ * Parst Bestellergebnis-CSV mit Spalten (Teilenummer, Anzahl, Preis).
+ * Preis = unser EK-Preis (Rabatt bereits abgezogen).
+ */
+export function parseResultCsv(text: string): { rows: CsvResult[]; skipped: number } {
+  const clean = text.replace(/^﻿/, "");
+  const lines = clean.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return { rows: [], skipped: 0 };
+
+  const delim = detectDelim(lines[0]);
+  const rows: CsvResult[] = [];
+  let skipped = 0;
+
+  for (const line of lines) {
+    if (line.trimStart().startsWith("#")) {
+      skipped++;
+      continue;
+    }
+    const cols = splitLine(line, delim).map((c) => c.trim());
+    const partNumber = (cols[0] ?? "").replace(/^"|"$/g, "").trim();
+    const quantity = Math.round(Number((cols[1] ?? "").replace(",", ".")));
+    const price = Number((cols[2] ?? "").replace(/\s/g, "").replace(",", "."));
+
+    if (!partNumber || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(price) || price < 0) {
+      skipped++;
+      continue;
+    }
+    rows.push({ partNumber, quantity, price });
   }
 
   return { rows, skipped };

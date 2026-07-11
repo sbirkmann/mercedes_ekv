@@ -5,7 +5,11 @@ import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { STATUS_LABEL, STATUS_ORDER, type ItemStatus } from "@/lib/pricing";
+import {
+  deliverableLabel,
+  ORDER_STATUS_LABEL,
+  DELIVERY_STATUS_LABEL,
+} from "@/lib/pricing";
 import {
   Table,
   TableBody,
@@ -17,14 +21,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const STATUS_BADGE: Record<ItemStatus, "default" | "secondary" | "success" | "warning" | "destructive"> = {
-  open: "secondary",
-  needs_inquiry: "warning",
-  inquired: "default",
-  ordered: "default",
-  delivered: "success",
-};
-
 function orderNo(n: number) {
   return `B-${String(n).padStart(5, "0")}`;
 }
@@ -34,7 +30,7 @@ export default async function BestellungenPage() {
     orderBy: { orderNumber: "desc" },
     include: {
       customer: { select: { companyName: true, customerNumber: true } },
-      items: { select: { status: true } },
+      items: { select: { status: true, quantity: true, qtyReceived: true, qtyDelivered: true } },
     },
     take: 100,
   });
@@ -57,22 +53,22 @@ export default async function BestellungenPage() {
               <TableHead>Nummer</TableHead>
               <TableHead>Kunde</TableHead>
               <TableHead className="text-right">Positionen</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Bestellstatus</TableHead>
+              <TableHead>Lieferstatus</TableHead>
+              <TableHead>Auslieferbar</TableHead>
               <TableHead className="w-20 text-right">Aktion</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orders.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   Noch keine Bestellungen.
                 </TableCell>
               </TableRow>
             )}
             {orders.map((o) => {
-              // niedrigster (am wenigsten fortgeschrittener) Status als Gesamtstatus
-              const present = new Set(o.items.map((i) => i.status));
-              const overall = STATUS_ORDER.find((s) => present.has(s));
+              const deliverable = deliverableLabel(o.items);
               return (
                 <TableRow key={o.id}>
                   <TableCell className="font-mono text-xs">{orderNo(o.orderNumber)}</TableCell>
@@ -84,10 +80,30 @@ export default async function BestellungenPage() {
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{o.items.length}</TableCell>
                   <TableCell>
-                    {overall ? (
-                      <Badge variant={STATUS_BADGE[overall]}>{STATUS_LABEL[overall]}</Badge>
+                    <Badge variant={o.status === "ordered" ? "default" : "secondary"}>
+                      {ORDER_STATUS_LABEL[o.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        o.deliveryStatus === "fully_delivered"
+                          ? "success"
+                          : o.deliveryStatus === "partially_delivered"
+                            ? "warning"
+                            : "secondary"
+                      }
+                    >
+                      {DELIVERY_STATUS_LABEL[o.deliveryStatus]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {deliverable ? (
+                      <Badge variant={deliverable.startsWith("Vollständig") ? "success" : "warning"}>
+                        {deliverable}
+                      </Badge>
                     ) : (
-                      <span className="text-sm text-muted-foreground">leer</span>
+                      <span className="text-sm text-muted-foreground">–</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">

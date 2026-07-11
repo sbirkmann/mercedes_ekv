@@ -1,6 +1,6 @@
 import "server-only";
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 const COOKIE_NAME = "ekv_session";
 const MAX_AGE = 60 * 60 * 8; // 8h
@@ -50,12 +50,27 @@ export async function getSession(): Promise<SessionPayload | null> {
   return verifySession(store.get(COOKIE_NAME)?.value);
 }
 
+/**
+ * secure-Flag fürs Cookie bestimmen:
+ *  - COOKIE_SECURE=true|false erzwingt den Wert (Env-Override),
+ *  - sonst automatisch anhand des Protokolls (x-forwarded-proto).
+ * So funktioniert das Login auch ohne SSL (reines HTTP hinter Proxy).
+ */
+async function cookieSecure(): Promise<boolean> {
+  const override = process.env.COOKIE_SECURE;
+  if (override === "true") return true;
+  if (override === "false") return false;
+  const h = await headers();
+  const proto = (h.get("x-forwarded-proto") ?? "").split(",")[0].trim().toLowerCase();
+  return proto === "https";
+}
+
 export async function createSessionCookie(payload: SessionPayload) {
   const token = await signSession(payload);
   const store = await cookies();
   store.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: await cookieSecure(),
     sameSite: "lax",
     path: "/",
     maxAge: MAX_AGE,

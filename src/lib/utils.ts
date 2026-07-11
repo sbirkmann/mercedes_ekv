@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Zufällige ID – nutzt crypto.randomUUID nur, wenn verfügbar
+ * (Secure Context/HTTPS), sonst Fallback (funktioniert auch über HTTP).
+ */
+export function randomId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 /** Prisma Decimal -> number|null (für Anzeige/Serialisierung) */
 export function toNum(v: unknown): number | null {
   if (v === null || v === undefined) return null;

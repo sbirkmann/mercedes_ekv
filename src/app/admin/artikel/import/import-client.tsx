@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Upload, FileSpreadsheet, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { randomId } from "@/lib/utils";
 
-const CHUNK_SIZE = 4 * 1024 * 1024; // 4 MB
+const CHUNK_SIZE = 800 * 1024; // 800 KB
 
 type Phase = "idle" | "uploading" | "processing" | "done" | "error";
 
@@ -44,7 +45,7 @@ export function ImportClient() {
     setProgress(null);
     setPhase("uploading");
 
-    const uploadId = crypto.randomUUID();
+    const uploadId = randomId();
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
     try {

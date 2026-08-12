@@ -190,23 +190,31 @@ export default async function OrderDetailPage({
             </Badge>
           )}
         </div>
-        {rows.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Batch: Status aller Positionen setzen */}
-            <form action={setAllStatus.bind(null, order.id)} className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Alle auf:</span>
-              <Select name="status" defaultValue="" required className="h-9 w-48">
-                <option value="" disabled>– Status wählen –</option>
-                {STATUS_ORDER.map((s) => (
-                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                ))}
-              </Select>
-              <Button type="submit" variant="secondary" size="sm">Anwenden</Button>
-            </form>
-            <CreateDeliveryNote orderId={order.id} items={deliverableItems} />
-            <OrderActionsBar orderId={order.id} receiptItems={receiptItems} />
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Batch-Aktionen erst sinnvoll, wenn Positionen existieren */}
+          {rows.length > 0 && (
+            <>
+              {/* Batch: Status aller Positionen setzen */}
+              <form action={setAllStatus.bind(null, order.id)} className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Alle auf:</span>
+                <Select name="status" defaultValue="" required className="h-9 w-48">
+                  <option value="" disabled>– Status wählen –</option>
+                  {STATUS_ORDER.map((s) => (
+                    <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                  ))}
+                </Select>
+                <Button type="submit" variant="secondary" size="sm">Anwenden</Button>
+              </form>
+              <CreateDeliveryNote orderId={order.id} items={deliverableItems} />
+            </>
+          )}
+          {/* Import muss auch bei leerer Bestellung erreichbar sein */}
+          <OrderActionsBar
+            orderId={order.id}
+            receiptItems={receiptItems}
+            hasPositions={rows.length > 0}
+          />
+        </div>
       </div>
       <PositionsManager rows={rows} />
     </div>

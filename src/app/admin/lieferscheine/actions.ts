@@ -55,12 +55,17 @@ export async function createDeliveryNote(orderId: string, _prev: FormState, form
         items: { create: lines.map((l) => ({ orderItemId: l.orderItemId, quantity: l.quantity })) },
       },
     });
-    // qtyDelivered fortschreiben
+    // qtyDelivered fortschreiben; vollständig gelieferte Positionen → "geliefert"
     for (const l of lines) {
       const it = order.items.find((i) => i.id === l.orderItemId)!;
+      const qtyDelivered = (it.qtyDelivered ?? 0) + l.quantity;
       await tx.orderItem.update({
         where: { id: l.orderItemId },
-        data: { qtyDelivered: (it.qtyDelivered ?? 0) + l.quantity },
+        data: {
+          qtyDelivered,
+          // Teillieferung: Status bleibt unverändert, es fehlt noch Ware.
+          ...(qtyDelivered >= it.quantity ? { status: "delivered" as const } : {}),
+        },
       });
     }
     return created;
@@ -91,12 +96,22 @@ export async function deleteDeliveryNote(formData: FormData): Promise<void> {
   if (!note) return;
 
   await prisma.$transaction(async (tx) => {
-    // gelieferte Mengen zurücknehmen
+    // gelieferte Mengen zurücknehmen; nicht mehr vollständige Positionen
+    // fallen von "geliefert" auf "bestellt" zurück
     for (const li of note.items) {
-      const it = await tx.orderItem.findUnique({ where: { id: li.orderItemId }, select: { qtyDelivered: true } });
+      const it = await tx.orderItem.findUnique({
+        where: { id: li.orderItemId },
+        select: { qtyDelivered: true, quantity: true, status: true },
+      });
+      const qtyDelivered = Math.max(0, (it?.qtyDelivered ?? 0) - li.quantity);
       await tx.orderItem.update({
         where: { id: li.orderItemId },
-        data: { qtyDelivered: Math.max(0, (it?.qtyDelivered ?? 0) - li.quantity) },
+        data: {
+          qtyDelivered,
+          ...(it?.status === "delivered" && qtyDelivered < (it?.quantity ?? 0)
+            ? { status: "ordered" as const }
+            : {}),
+        },
       });
     }
     await tx.deliveryNote.delete({ where: { id } });

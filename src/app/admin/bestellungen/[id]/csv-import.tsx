@@ -21,13 +21,13 @@ export function CsvImport({ orderId }: { orderId: string }) {
       <Input
         type="file"
         name="file"
-        accept=".csv,text/csv,text/plain"
+        accept=".csv,.xlsx,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         required
         className="file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm"
       />
       <div className="flex items-center gap-3">
         <SubmitButton variant="secondary">
-          <Upload /> CSV importieren
+          <Upload /> Liste importieren
         </SubmitButton>
         {state?.ok && (
           <span className="text-sm text-emerald-600 dark:text-emerald-400">
@@ -37,7 +37,8 @@ export function CsvImport({ orderId }: { orderId: string }) {
       </div>
       <FormError message={state?.error} />
       <p className="text-xs text-muted-foreground">
-        Spalten: <code>Teilenummer</code>, <code>Anzahl</code> (Trennzeichen ; , oder Tab; Kopf-/Kommentarzeilen werden übersprungen).
+        Excel (.xlsx) oder CSV – Spalte 1: <code>Teilenummer</code>, Spalte 2: <code>Anzahl</code>.
+        Bei CSV Trennzeichen ; , oder Tab; Kopf-/Kommentarzeilen werden übersprungen.
       </p>
     </form>
   );

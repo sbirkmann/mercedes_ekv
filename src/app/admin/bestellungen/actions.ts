@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { priceForPartNumber, priceForPartNumbers, normalizePn } from "@/lib/orders";
 import { parsePositionsCsv, parseResultCsv } from "@/lib/csv";
+import { parsePositionsXlsx } from "@/lib/xlsx-positions";
+import { parseTeilelistePdf } from "@/lib/pdf-teileliste";
 import { computePrice, STATUS_ORDER, type ItemStatus } from "@/lib/pricing";
 
 export type PendingIndividual = {
@@ -185,11 +187,22 @@ export async function addPositionManual(orderId: string, _prev: FormState, formD
 export async function importPositionsCsv(orderId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   await requireUser();
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "Bitte eine CSV-Datei wählen." };
-  if (file.size > 20 * 1024 * 1024) return { error: "CSV zu groß (max. 20 MB)." };
+  if (!(file instanceof File) || file.size === 0) return { error: "Bitte eine Datei wählen (CSV oder Excel)." };
+  if (file.size > 20 * 1024 * 1024) return { error: "Datei zu groß (max. 20 MB)." };
 
-  const text = await file.text();
-  const { rows } = parsePositionsCsv(text);
+  // Kunden-Bestelllisten kommen als xlsx (Spalte 1 = Teilenummer, 2 = Anzahl) oder als CSV.
+  const isXlsx =
+    /\.xlsx$/i.test(file.name) ||
+    file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+  let rows;
+  try {
+    rows = isXlsx
+      ? (await parsePositionsXlsx(await file.arrayBuffer())).rows
+      : parsePositionsCsv(await file.text()).rows;
+  } catch {
+    return { error: "Datei konnte nicht gelesen werden (beschädigt oder kein gültiges Format)." };
+  }
   if (rows.length === 0) return { error: "Keine gültigen Zeilen (Teilenummer, Anzahl) gefunden." };
 
   let customerId: string;
@@ -316,6 +329,67 @@ export async function recalcPosition(itemId: string, _formData?: FormData): Prom
 }
 
 /**
+ * Bestellbestätigung (PDF) von Mercedes: Teilenummern auslesen und die
+ * passenden Positionen auf Status "bestellt" setzen. Preise bleiben
+ * unverändert – die PDF dient nur der Bestätigung, was bestellt wurde.
+ */
+async function markOrderedFromPdf(orderId: string, file: File): Promise<FormState> {
+  let rows;
+  try {
+    rows = (await parseTeilelistePdf(await file.arrayBuffer())).rows;
+  } catch {
+    return { error: "PDF konnte nicht gelesen werden (beschädigt oder kein gültiges Format)." };
+  }
+  if (rows.length === 0) {
+    return { error: "Keine Teilenummern in der PDF gefunden (erwartet: Mercedes-Bestellbestätigung)." };
+  }
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: { include: { article: true } } },
+  });
+  if (!order) return { error: "Bestellung nicht gefunden." };
+
+  // Positionen der Bestellung per normalisierter Teilenummer indexieren
+  const itemByNorm = new Map<string, (typeof order.items)[number]>();
+  for (const it of order.items) {
+    itemByNorm.set(normalizePn(it.partNumber), it);
+    if (it.article) {
+      itemByNorm.set(normalizePn(it.article.partNumber), it);
+      if (it.article.partNumberFmt) itemByNorm.set(normalizePn(it.article.partNumberFmt), it);
+    }
+  }
+
+  const ids = new Set<string>();
+  const missing: string[] = [];
+  for (const row of rows) {
+    const it = itemByNorm.get(normalizePn(row.partNumber));
+    if (it) ids.add(it.id);
+    else missing.push(row.partNumber);
+  }
+
+  if (ids.size === 0) {
+    return { error: `Keine der ${rows.length} Teilenummern aus der PDF ist in dieser Bestellung enthalten.` };
+  }
+
+  await prisma.orderItem.updateMany({
+    where: { id: { in: Array.from(ids) } },
+    data: { status: "ordered" },
+  });
+  await syncOrderStatus(orderId);
+  revalidatePath(`/admin/bestellungen/${orderId}`);
+
+  return {
+    ok: true,
+    info:
+      `${ids.size} Position${ids.size === 1 ? "" : "en"} auf „bestellt" gesetzt` +
+      (missing.length
+        ? `, ${missing.length} nicht in Bestellung gefunden (${missing.slice(0, 3).join(", ")}${missing.length > 3 ? " …" : ""})`
+        : "") + ".",
+  };
+}
+
+/**
  * Bestellergebnis-Import (Teilenummer, Anzahl, Preis=EK).
  * Fall 1 (Rabattgruppe nicht individuell): Listenpreis aus EK zurückrechnen →
  *   Angefragt; Kundenpreis daraus berechnen → Abrechnung; Status → bestellt.
@@ -325,8 +399,12 @@ export async function recalcPosition(itemId: string, _formData?: FormData): Prom
 export async function importOrderResult(orderId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   await requireUser();
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "Bitte eine CSV-Datei wählen." };
-  if (file.size > 20 * 1024 * 1024) return { error: "CSV zu groß (max. 20 MB)." };
+  if (!(file instanceof File) || file.size === 0) return { error: "Bitte eine Datei wählen (CSV oder PDF)." };
+  if (file.size > 20 * 1024 * 1024) return { error: "Datei zu groß (max. 20 MB)." };
+
+  // Mercedes-Bestellbestätigung als PDF: nur Teilenummern → Status "bestellt".
+  const isPdf = /\.pdf$/i.test(file.name) || file.type === "application/pdf";
+  if (isPdf) return markOrderedFromPdf(orderId, file);
 
   const { rows } = parseResultCsv(await file.text());
   if (rows.length === 0) return { error: "Keine gültigen Zeilen (Teilenummer, Anzahl, Preis) gefunden." };

@@ -4,6 +4,8 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 export type PdfLine = {
   pos: number;
   partNumber: string;
+  /** Tatsächlich gelieferte Ersatz-Teilenummer (falls abweichend). */
+  partNumberReplacement?: string | null;
   title: string;
   quantity: number;
   unitPrice?: number | null; // nur Rechnung
@@ -77,12 +79,16 @@ export async function buildDocumentPdf(doc: PdfDoc): Promise<Uint8Array> {
 
   let total = 0;
   for (const li of doc.lines) {
-    if (y < margin + 60) {
+    // Ersatzlieferung braucht eine zweite Zeile → mehr Platz vorhalten
+    const hasReplacement = !!li.partNumberReplacement;
+    const lineHeight = hasReplacement ? 26 : 15;
+    if (y < margin + 60 + (hasReplacement ? 11 : 0)) {
       page = pdf.addPage([595.28, 841.89]);
       y = height - margin;
     }
     text(String(li.pos), cols.pos, y, 9);
-    text(li.partNumber.slice(0, 22), cols.pn, y, 9);
+    // Bei Ersatz steht oben die gelieferte Nummer, darunter die bestellte.
+    text((hasReplacement ? li.partNumberReplacement! : li.partNumber).slice(0, 22), cols.pn, y, 9);
     text(li.title.slice(0, doc.withPrices ? 38 : 46), cols.title, y, 9);
     text(String(li.quantity), cols.qty, y, 9);
     if (doc.withPrices && li.unitPrice != null) {
@@ -91,7 +97,17 @@ export async function buildDocumentPdf(doc: PdfDoc): Promise<Uint8Array> {
       text(eur.format(li.unitPrice), cols.price, y, 9);
       text(eur.format(sum), cols.sum, y, 9);
     }
-    y -= 15;
+    if (hasReplacement) {
+      text(
+        `Ersatz für ${li.partNumber.slice(0, 22)}`,
+        cols.pn,
+        y - 11,
+        8,
+        false,
+        rgb(0.45, 0.45, 0.45),
+      );
+    }
+    y -= lineHeight;
   }
 
   if (doc.withPrices) {

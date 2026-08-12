@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, ClipboardList, PackageCheck, Download } from "lucide-react";
+import { Upload, ClipboardList, PackageCheck, Download, FileSpreadsheet } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { CsvImport } from "./csv-import";
@@ -13,9 +13,12 @@ type Which = "csv" | "result" | "we" | null;
 export function OrderActionsBar({
   orderId,
   receiptItems,
+  hasPositions = true,
 }: {
   orderId: string;
   receiptItems: ReceiptItem[];
+  /** Bestellergebnis/Wareneingang/Export setzen vorhandene Positionen voraus. */
+  hasPositions?: boolean;
 }) {
   const [open, setOpen] = useState<Which>(null);
 
@@ -23,24 +26,34 @@ export function OrderActionsBar({
     <>
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" onClick={() => setOpen("csv")}>
-          <Upload /> CSV-Import
+          <Upload /> Bestellliste importieren
         </Button>
-        <Button variant="outline" size="sm" onClick={() => setOpen("result")}>
-          <ClipboardList /> Bestellergebnis
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setOpen("we")}>
-          <PackageCheck /> Wareneingang
-        </Button>
-        <a
-          href={`/admin/bestellungen/${orderId}/export`}
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          <Download /> CSV-Export
-        </a>
+        {hasPositions && (
+          <>
+            <Button variant="outline" size="sm" onClick={() => setOpen("result")}>
+              <ClipboardList /> Bestellergebnis
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setOpen("we")}>
+              <PackageCheck /> Wareneingang
+            </Button>
+            <a
+              href={`/admin/bestellungen/${orderId}/export-b2b`}
+              className={buttonVariants({ variant: "default", size: "sm" })}
+            >
+              <FileSpreadsheet /> Mercedes-Bestellung (B2B)
+            </a>
+            <a
+              href={`/admin/bestellungen/${orderId}/export`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Download /> CSV-Export
+            </a>
+          </>
+        )}
       </div>
 
       {open === "csv" && (
-        <Modal title="CSV-Import (Teilenummer, Anzahl)" onClose={() => setOpen(null)}>
+        <Modal title="Bestellliste importieren (Teilenummer, Anzahl)" onClose={() => setOpen(null)}>
           <CsvImport orderId={orderId} />
         </Modal>
       )}

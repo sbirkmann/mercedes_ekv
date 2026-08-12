@@ -25,6 +25,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const lines: PdfLine[] = note.items.map((li, i) => ({
     pos: i + 1,
     partNumber: li.orderItem.partNumber,
+    partNumberReplacement: li.orderItem.partNumberReplacement,
     title: li.orderItem.article?.titleDe ?? "",
     quantity: li.quantity,
   }));

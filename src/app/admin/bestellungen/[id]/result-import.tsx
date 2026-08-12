@@ -35,7 +35,7 @@ export function ResultImport({ orderId }: { orderId: string }) {
         <Input
           type="file"
           name="file"
-          accept=".csv,text/csv,text/plain"
+          accept=".csv,.pdf,text/csv,text/plain,application/pdf"
           required
           className="file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm"
         />
@@ -49,8 +49,12 @@ export function ResultImport({ orderId }: { orderId: string }) {
         </div>
         <FormError message={state?.error} />
         <p className="text-xs text-muted-foreground">
-          Spalten: <code>Teilenummer</code>, <code>Anzahl</code>, <code>Preis</code> (unser EK).
-          Fall 1 (nicht individuell) wird automatisch berechnet, Status → bestellt.
+          <strong>PDF</strong> (Mercedes-Bestellbestätigung): Teilenummern werden ausgelesen,
+          Status → bestellt. Preise bleiben unverändert.
+          <br />
+          <strong>CSV</strong> – Spalten: <code>Teilenummer</code>, <code>Anzahl</code>,{" "}
+          <code>Preis</code> (unser EK). Fall 1 (nicht individuell) wird automatisch berechnet,
+          Status → bestellt.
         </p>
       </form>
 

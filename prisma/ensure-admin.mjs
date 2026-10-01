@@ -12,7 +12,20 @@ const name = process.env.ADMIN_NAME || "Administrator";
 async function main() {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    console.log(`✓ Admin '${email}' existiert bereits – kein Seed nötig.`);
+    // Ist ADMIN_PASSWORD explizit gesetzt, gilt es als Quelle der Wahrheit.
+    if (process.env.ADMIN_PASSWORD) {
+      await prisma.user.update({
+        where: { email },
+        data: {
+          passwordHash: await bcrypt.hash(password, 10),
+          role: "ADMIN",
+          active: true,
+        },
+      });
+      console.log(`✓ Admin '${email}' existiert – Passwort aus ADMIN_PASSWORD gesetzt.`);
+    } else {
+      console.log(`✓ Admin '${email}' existiert bereits – kein Seed nötig.`);
+    }
     return;
   }
   await prisma.user.create({

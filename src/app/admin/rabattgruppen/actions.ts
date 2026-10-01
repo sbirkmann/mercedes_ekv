@@ -19,7 +19,6 @@ const baseSchema = z.object({
   name: z.string().trim().optional(),
   percent: optionalNum,
   individual: z.boolean(),
-  minMargin: optionalNum,
 });
 
 const createSchema = baseSchema.extend({
@@ -35,7 +34,6 @@ function common(formData: FormData) {
     name: (formData.get("name") as string) || undefined,
     percent: (formData.get("percent") as string) ?? "",
     individual: formData.get("individual") === "on",
-    minMargin: (formData.get("minMargin") as string) ?? "",
   };
 }
 
@@ -53,7 +51,6 @@ export async function createGroup(_prev: FormState, formData: FormData): Promise
         name: p.data.name || null,
         percent: p.data.percent,
         individual: p.data.individual,
-        minMargin: p.data.minMargin,
       },
     });
   } catch (e) {
@@ -74,7 +71,6 @@ export async function updateGroup(code: string, _prev: FormState, formData: Form
         name: p.data.name || null,
         percent: p.data.percent,
         individual: p.data.individual,
-        minMargin: p.data.minMargin,
       },
     });
   } catch (e) {

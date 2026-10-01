@@ -284,7 +284,7 @@ export async function updatePosition(itemId: string, formData: FormData): Promis
       const r = computePrice({
         listPrice: priceRequested,
         groupPercent: g?.percent != null ? Number(g.percent) : null,
-        minMargin: g?.minMargin != null ? Number(g.minMargin) : null,
+        minMargin: cd?.minMargin != null ? Number(cd.minMargin) : null,
         groupIndividual: g?.individual ?? false,
         customerDiscount: cd?.discount != null ? Number(cd.discount) : null,
         customerDiscountIndividual: cd?.individual ?? false,
@@ -459,7 +459,7 @@ export async function importOrderResult(orderId: string, _prev: FormState, formD
       const billing = computePrice({
         listPrice: newList,
         groupPercent,
-        minMargin: g?.minMargin != null ? Number(g.minMargin) : null,
+        minMargin: cd?.minMargin != null ? Number(cd.minMargin) : null,
         groupIndividual: false,
         customerDiscount: cd?.discount != null ? Number(cd.discount) : null,
         customerDiscountIndividual: cd?.individual ?? false,

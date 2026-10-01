@@ -29,7 +29,7 @@ export default async function RabattgruppenPage() {
     <div>
       <PageHeader
         title="Rabattgruppen"
-        description="Code, Prozent, Individuell und Mindestmarge"
+        description="Code, Prozent und Individuell"
         action={
           <Link href="/admin/rabattgruppen/neu" className={buttonVariants()}>
             <Plus /> Rabattgruppe anlegen
@@ -44,7 +44,6 @@ export default async function RabattgruppenPage() {
               <TableHead>Bezeichnung</TableHead>
               <TableHead className="text-right">Prozent</TableHead>
               <TableHead className="text-center">Individuell</TableHead>
-              <TableHead className="text-right">Mind.marge</TableHead>
               <TableHead>Verwendung</TableHead>
               <TableHead className="w-24 text-right">Aktion</TableHead>
             </TableRow>
@@ -52,7 +51,7 @@ export default async function RabattgruppenPage() {
           <TableBody>
             {groups.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   Keine Rabattgruppen vorhanden.
                 </TableCell>
               </TableRow>
@@ -71,7 +70,6 @@ export default async function RabattgruppenPage() {
                     <span className="text-muted-foreground">–</span>
                   )}
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{formatPct(g.minMargin)}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {g._count.articles} Art. · {g._count.customerDiscounts} Kd.
                 </TableCell>

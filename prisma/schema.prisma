@@ -88,6 +88,7 @@ model CustomerDiscount {
   discountGroupCode String   @db.VarChar(10)
   discount          Decimal? @db.Decimal(5, 2) // Rabatt %
   individual        Boolean  @default(false) // Individuell J/N
+  minMargin         Decimal? @db.Decimal(5, 2) // Mindestmarge % (überschreibt die der Rabattgruppe)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

@@ -3,7 +3,7 @@
  *
  *  EK (unser Einkauf) = Liste × (1 − Rabattgruppen-% / 100)
  *  Kundenpreis        = Liste × (1 − Kundenrabatt% / 100)
- *  Marge (= Kundenpreis − EK) muss ≥ EK × Mindestmarge% sein,
+ *  Marge (= Kundenpreis − EK) muss ≥ EK × Mindestmarge% (pro Kunde und Rabattgruppe) sein,
  *  sonst wird der Kundenpreis auf EK × (1 + Mindestmarge/100) angehoben.
  *
  *  Ohne hinterlegten Kundenrabatt:

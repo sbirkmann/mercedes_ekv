@@ -16,6 +16,12 @@ const schema = z.object({
     .optional()
     .transform((v) => (v ? Number(v.replace(",", ".")) : null))
     .refine((v) => v === null || (!Number.isNaN(v) && v >= 0 && v <= 100), "Rabatt 0–100 %"),
+  minMargin: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? Number(v.replace(",", ".")) : null))
+    .refine((v) => v === null || (!Number.isNaN(v) && v >= 0 && v <= 1000), "Mindestmarge 0–1000 %"),
   individual: z.boolean(),
 });
 
@@ -25,6 +31,7 @@ export async function addCustomerDiscount(_prev: FormState, formData: FormData):
     customerId: formData.get("customerId"),
     discountGroupCode: formData.get("discountGroupCode"),
     discount: (formData.get("discount") as string) ?? "",
+    minMargin: (formData.get("minMargin") as string) ?? "",
     individual: formData.get("individual") === "on",
   });
   if (!p.success) return { error: p.error.issues[0].message };
@@ -36,6 +43,7 @@ export async function addCustomerDiscount(_prev: FormState, formData: FormData):
         discountGroupCode: p.data.discountGroupCode,
         discount: p.data.discount,
         individual: p.data.individual,
+        minMargin: p.data.minMargin,
       },
     });
   } catch (e) {
@@ -55,9 +63,16 @@ export async function updateCustomerDiscount(id: string, formData: FormData): Pr
   const discount =
     parsed !== null && (Number.isNaN(parsed) || parsed < 0 || parsed > 100) ? null : parsed;
 
+  const marginRaw = String(formData.get("minMargin") ?? "").replace(",", ".");
+  const marginParsed = marginRaw ? Number(marginRaw) : null;
+  const minMargin =
+    marginParsed !== null && (Number.isNaN(marginParsed) || marginParsed < 0 || marginParsed > 1000)
+      ? null
+      : marginParsed;
+
   const cd = await prisma.customerDiscount.update({
     where: { id },
-    data: { discount, individual: formData.get("individual") === "on" },
+    data: { discount, minMargin, individual: formData.get("individual") === "on" },
   });
   revalidatePath(`/admin/kundenrabatte/${cd.customerId}`);
   revalidatePath("/admin/kundenrabatte");

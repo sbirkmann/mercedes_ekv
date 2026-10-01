@@ -25,7 +25,7 @@ type ArticleForPricing = {
 /** Preis + Status für eine Position eines Kunden berechnen. */
 export function priceWith(
   article: ArticleForPricing | null,
-  customerDiscount: { discount: unknown; individual: boolean } | null,
+  customerDiscount: { discount: unknown; individual: boolean; minMargin?: unknown } | null,
 ): PriceResult {
   if (!article) {
     return { status: "needs_inquiry", priceCustomerStandard: null, ek: null };
@@ -34,7 +34,7 @@ export function priceWith(
   return computePrice({
     listPrice: num(article.listPrice),
     groupPercent: num(g?.percent),
-    minMargin: num(g?.minMargin),
+    minMargin: num(customerDiscount?.minMargin),
     groupIndividual: g?.individual ?? false,
     customerDiscount: num(customerDiscount?.discount),
     customerDiscountIndividual: customerDiscount?.individual ?? false,

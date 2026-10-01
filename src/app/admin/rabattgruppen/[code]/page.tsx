@@ -28,7 +28,6 @@ export default async function EditRabattgruppePage({
           name: g.name,
           percent: g.percent !== null ? String(g.percent) : "",
           individual: g.individual,
-          minMargin: g.minMargin !== null ? String(g.minMargin) : "",
         }}
       />
     </div>

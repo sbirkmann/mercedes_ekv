@@ -15,7 +15,6 @@ export type GroupValues = {
   name: string | null;
   percent: string;
   individual: boolean;
-  minMargin: string;
 };
 
 export function GroupForm({
@@ -50,9 +49,6 @@ export function GroupForm({
             </Field>
             <Field label="Prozent (%)" htmlFor="percent" hint="Kann leer bleiben">
               <Input id="percent" name="percent" type="text" inputMode="decimal" defaultValue={initial?.percent} placeholder="—" />
-            </Field>
-            <Field label="Mindestmarge (%)" htmlFor="minMargin">
-              <Input id="minMargin" name="minMargin" type="text" inputMode="decimal" defaultValue={initial?.minMargin} placeholder="—" />
             </Field>
           </div>
 

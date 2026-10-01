@@ -32,6 +32,7 @@ export type DiscountRow = {
   groupName: string | null;
   groupPercent: string | null;
   discount: string | null;
+  minMargin: string | null;
   individual: boolean;
 };
 
@@ -77,6 +78,7 @@ export function DiscountManager({
                     <TableHead>Rabattgruppe</TableHead>
                     <TableHead className="text-right">Gruppen-%</TableHead>
                     <TableHead className="w-32">Kundenrabatt %</TableHead>
+                    <TableHead className="w-32">Mindestmarge %</TableHead>
                     <TableHead className="text-center">Individuell</TableHead>
                     <TableHead className="w-32 text-right">Aktion</TableHead>
                   </TableRow>
@@ -96,6 +98,16 @@ export function DiscountManager({
                           name="discount"
                           form={`upd-${r.id}`}
                           defaultValue={r.discount ?? ""}
+                          inputMode="decimal"
+                          className="h-8 w-24"
+                          placeholder="—"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          name="minMargin"
+                          form={`upd-${r.id}`}
+                          defaultValue={r.minMargin ?? ""}
                           inputMode="decimal"
                           className="h-8 w-24"
                           placeholder="—"
@@ -146,7 +158,7 @@ export function DiscountManager({
               Alle Rabattgruppen sind bereits zugeordnet.
             </p>
           ) : (
-            <form action={formAction} className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
+            <form action={formAction} className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-end">
               <input type="hidden" name="customerId" value={customerId} />
               <div className="grid gap-1.5">
                 <label className="text-sm font-medium">Rabattgruppe (Code)</label>
@@ -163,13 +175,17 @@ export function DiscountManager({
                 <label className="text-sm font-medium">Rabatt %</label>
                 <Input name="discount" inputMode="decimal" className="w-28" placeholder="—" />
               </div>
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">Mindestmarge %</label>
+                <Input name="minMargin" inputMode="decimal" className="w-28" placeholder="—" />
+              </div>
               <label className="flex h-9 items-center gap-2 text-sm">
                 <Checkbox name="individual" /> Individuell
               </label>
               <SubmitButton>
                 <Plus /> Hinzufügen
               </SubmitButton>
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-5">
                 <FormError message={state?.error} />
               </div>
             </form>

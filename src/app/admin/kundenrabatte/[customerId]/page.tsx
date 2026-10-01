@@ -37,6 +37,7 @@ export default async function KundenrabatteDetailPage({
     groupName: d.discountGroup.name,
     groupPercent: d.discountGroup.percent !== null ? String(d.discountGroup.percent) : null,
     discount: d.discount !== null ? String(d.discount) : null,
+    minMargin: d.minMargin !== null ? String(d.minMargin) : null,
     individual: d.individual,
   }));
 
